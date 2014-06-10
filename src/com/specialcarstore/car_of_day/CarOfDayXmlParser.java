@@ -1,4 +1,4 @@
-package com.christianwilcox.widget_test;
+package com.specialcarstore.car_of_day;
 
 import java.io.IOException;
 import java.io.InputStream;

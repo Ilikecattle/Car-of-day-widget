@@ -1,16 +1,14 @@
-package com.christianwilcox.widget_test;
+package com.specialcarstore.car_of_day;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
-import java.net.URLEncoder;
 
 import android.appwidget.AppWidgetManager;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
-import android.util.Log;
 import android.widget.RemoteViews;
 
 class ImageDownloader extends AsyncTask<String, Void, Bitmap> {
