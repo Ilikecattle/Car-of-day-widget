@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 
 import android.appwidget.AppWidgetManager;
+import android.content.ComponentName;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -13,15 +14,10 @@ import android.widget.RemoteViews;
 
 class ImageDownloader extends AsyncTask<String, Void, Bitmap> {
 	private int viewId;
-	private AppWidgetManager appWidgetManager;
 	private Context context;
-	private int[] appWidgetIds;
 
-	public ImageDownloader(Context context, AppWidgetManager appWidgetManager,
-			int[] appWidgetIds, int viewId) {
+	public ImageDownloader(Context context, int viewId) {
 		this.context = context;
-		this.appWidgetManager = appWidgetManager;
-		this.appWidgetIds = appWidgetIds;
 		this.viewId = viewId;
 	}
 
@@ -35,7 +31,7 @@ class ImageDownloader extends AsyncTask<String, Void, Bitmap> {
 			in = new java.net.URL(url).openStream();
 			mIcon = BitmapFactory.decodeStream(in);
 		} catch (MalformedURLException e) {
-		
+
 		} catch (IOException e) {
 
 		}
@@ -44,19 +40,18 @@ class ImageDownloader extends AsyncTask<String, Void, Bitmap> {
 	}
 
 	protected void onPostExecute(Bitmap result) {
-		
-		final int N = appWidgetIds.length;
 
-		for (int i = 0; i < N; i++) {
-			int widgetId = appWidgetIds[i];
+		ComponentName widget = new ComponentName(context,
+				MyWidgetProvider.class);
 
-			RemoteViews views = new RemoteViews(context.getPackageName(),
-					R.layout.widget_layout);
+		AppWidgetManager appWidgetManager = AppWidgetManager
+				.getInstance(context);
 
-			views.setImageViewBitmap(viewId, result);
-			appWidgetManager.updateAppWidget(widgetId, views);
-		}
-		
-		
+		RemoteViews views = new RemoteViews(context.getPackageName(),
+				R.layout.widget_layout);
+
+		views.setImageViewBitmap(viewId, result);
+		appWidgetManager.updateAppWidget(widget, views);
+
 	}
 }

@@ -4,4 +4,35 @@
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
     >
+
+    <CheckBox
+        android:id="@+id/dateCheckBox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Show Date" />
+    
+    <CheckBox
+        android:id="@+id/refreshButtonCheckBox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Show Refresh Button" />
+
+    <Button
+        android:id="@+id/dateBGColorSelect"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:text="Select BG Color" />
+
+    <Button
+        android:id="@+id/dateFontColor"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:text="Select Date Font Color" />
+
+    <Button
+        android:id="@+id/doneButton"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:text="Done" />
+
 </LinearLayout>

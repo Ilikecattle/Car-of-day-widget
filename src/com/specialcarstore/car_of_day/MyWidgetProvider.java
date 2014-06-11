@@ -18,10 +18,12 @@ import android.content.ComponentName;
 import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.preference.PreferenceManager;
 import android.provider.Browser;
 import android.provider.CalendarContract;
 import android.util.Log;
@@ -31,10 +33,8 @@ public class MyWidgetProvider extends AppWidgetProvider {
 
 	private static final String URL = "http://specialcarstore.com/Calendar/xml_gen.php";
 
-	private static final String LEFT_CLICKED = "leftButtonClick";
-	private static final String RIGHT_CLICKED = "rightButtonClick";
-	private static final String CAR_CLICKED = "carClick";
 	private static final String DATE_CLICKED = "dateClick";
+	private static final String REFRESH_CLICKED = "refreshClick";
 
 	private Date date = new Date();
 
@@ -42,8 +42,39 @@ public class MyWidgetProvider extends AppWidgetProvider {
 	public void onUpdate(Context context, AppWidgetManager appWidgetManager,
 			int[] appWidgetIds) {
 
+		doUpdate(context);
+
+	}
+
+	@Override
+	public void onReceive(Context context, Intent intent) {
+		super.onReceive(context, intent);
+
+		if (REFRESH_CLICKED.equals(intent.getAction())) {
+			Log.e("TEST", "REFRESH");
+			doUpdate(context);
+		} else if (DATE_CLICKED.equals(intent.getAction())) {
+			Calendar c = Calendar.getInstance();
+			c.setTime(new Date());
+			long startMillis = c.get(Calendar.MILLISECOND);
+
+			Uri.Builder builder = CalendarContract.CONTENT_URI.buildUpon();
+			builder.appendPath("time");
+			ContentUris.appendId(builder, startMillis);
+			Intent intent2 = new Intent(Intent.ACTION_VIEW).setData(builder
+					.build());
+			intent2.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+			context.startActivity(intent2);
+		}
+
+	}
+
+	public void doUpdate(Context context) {
+		AppWidgetManager appWidgetManager = AppWidgetManager
+				.getInstance(context);
+
 		if (isOnline(context)) {
-			loadCar(context, appWidgetManager, appWidgetIds);
+			loadCar(context);
 		}
 
 		RemoteViews views = new RemoteViews(context.getPackageName(),
@@ -52,81 +83,14 @@ public class MyWidgetProvider extends AppWidgetProvider {
 				MyWidgetProvider.class);
 
 		updateDate(views);
-
-		/*
-		 * views.setOnClickPendingIntent(R.id.left_button,
-		 * getPendingSelfIntent(context, LEFT_CLICKED));
-		 * 
-		 * views.setOnClickPendingIntent(R.id.right_button,
-		 * getPendingSelfIntent(context, RIGHT_CLICKED));
-		 */
-
+		
 		views.setOnClickPendingIntent(R.id.date,
 				getPendingSelfIntent(context, DATE_CLICKED));
 
-		/*
-		 * views.setOnClickPendingIntent(R.id.date,
-		 * getPendingIntentCalendarActivity(context));
-		 */
+		views.setOnClickPendingIntent(R.id.refreshButton,
+				getPendingSelfIntent(context, REFRESH_CLICKED));
 
 		appWidgetManager.updateAppWidget(widget, views);
-	}
-
-	@Override
-	public void onEnabled(Context context) {
-
-	}
-
-	@Override
-	public void onReceive(Context context, Intent intent) {
-		super.onReceive(context, intent);
-
-		RemoteViews views = new RemoteViews(context.getPackageName(),
-				R.layout.widget_layout);
-		ComponentName widget = new ComponentName(context,
-				MyWidgetProvider.class);
-
-		if (LEFT_CLICKED.equals(intent.getAction())) {
-
-			AppWidgetManager appWidgetManager = AppWidgetManager
-					.getInstance(context);
-
-			Calendar c = Calendar.getInstance();
-
-			c.setTime(date);
-
-			Log.e("TEST", "DATE" + c.get(Calendar.DAY_OF_MONTH));
-
-			c.roll(Calendar.DATE, -1);
-			date = c.getTime();
-			updateDate(views);
-
-			appWidgetManager.updateAppWidget(widget, views);
-		} else if (RIGHT_CLICKED.equals(intent.getAction())) {
-			Log.e("Test", "RIGHT");
-		} else if (CAR_CLICKED.equals(intent.getAction())) {
-			Log.e("TEST", "CAR");
-		} else if (DATE_CLICKED.equals(intent.getAction())) {
-			
-			// A date-time specified in milliseconds since the epoch.
-			long startMillis = 1000;
-			
-			Uri.Builder builder = CalendarContract.CONTENT_URI.buildUpon();
-			builder.appendPath("time");
-			ContentUris.appendId(builder, startMillis);
-			Intent intent2 = new Intent(Intent.ACTION_VIEW)
-			    .setData(builder.build());
-			intent2.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-			context.startActivity(intent2);
-			
-			/*Intent mailClient = new Intent(Intent.ACTION_MAIN);
-			final ComponentName cn = new ComponentName("com.google.android.calendar",
-					"com.google.android.calendar.LaunchActivity");
-			intent.setComponent(cn);
-			mailClient.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-			context.startActivity(mailClient);*/
-		}
-
 	}
 
 	protected PendingIntent getPendingIntentOpenArticle(Context context, Car car) {
@@ -164,10 +128,8 @@ public class MyWidgetProvider extends AppWidgetProvider {
 		return PendingIntent.getBroadcast(context, 0, intent, 0);
 	}
 
-	public void loadCar(Context context, AppWidgetManager appWidgetManager,
-			int[] appWidgetIds) {
-		new DownloadXmlTask(context, appWidgetManager, appWidgetIds)
-				.execute(URL);
+	public void loadCar(Context context) {
+		new DownloadXmlTask(context).execute(URL);
 	}
 
 	private List<Car> loadXmlFromNetwork(String urlString)
@@ -205,15 +167,10 @@ public class MyWidgetProvider extends AppWidgetProvider {
 
 	private class DownloadXmlTask extends AsyncTask<String, Void, List<Car>> {
 
-		private AppWidgetManager appWidgetManager;
 		private Context context;
-		private int[] appWidgetIds;
 
-		public DownloadXmlTask(Context context,
-				AppWidgetManager appWidgetManager, int[] appWidgetIds) {
+		public DownloadXmlTask(Context context) {
 			this.context = context;
-			this.appWidgetManager = appWidgetManager;
-			this.appWidgetIds = appWidgetIds;
 		}
 
 		@Override
@@ -240,8 +197,7 @@ public class MyWidgetProvider extends AppWidgetProvider {
 			views.setOnClickPendingIntent(R.id.car,
 					getPendingIntentOpenArticle(context, newestCar));
 
-			new ImageDownloader(context, appWidgetManager, appWidgetIds,
-					R.id.car).execute(newestCar.imageLink);
+			new ImageDownloader(context, R.id.car).execute(newestCar.imageLink);
 
 			AppWidgetManager appWidgetManager = AppWidgetManager
 					.getInstance(context);
