@@ -40,7 +40,6 @@ class ImageDownloader extends AsyncTask<String, Void, Bitmap> {
 	}
 
 	protected void onPostExecute(Bitmap result) {
-
 		ComponentName widget = new ComponentName(context,
 				MyWidgetProvider.class);
 

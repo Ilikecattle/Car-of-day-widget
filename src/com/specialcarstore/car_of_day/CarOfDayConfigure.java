@@ -1,22 +1,13 @@
 package com.specialcarstore.car_of_day;
 
-import static android.appwidget.AppWidgetManager.EXTRA_APPWIDGET_ID;
-import static android.appwidget.AppWidgetManager.INVALID_APPWIDGET_ID;
-
-import java.text.SimpleDateFormat;
-import java.util.Date;
-
 import afzkl.development.colorpickerview.dialog.ColorPickerDialog;
 import android.app.Activity;
 import android.appwidget.AppWidgetManager;
-import android.appwidget.AppWidgetProviderInfo;
 import android.content.ComponentName;
 import android.content.DialogInterface;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -25,7 +16,6 @@ import android.widget.RemoteViews;
 
 public class CarOfDayConfigure extends Activity implements OnClickListener {
 
-	int mAppWidgetId;
 	private Button mDoneButton;
 	private CheckBox mShowDateCheckbox;
 	private CheckBox mShowRefreshButtonCheckbox;
@@ -33,6 +23,11 @@ public class CarOfDayConfigure extends Activity implements OnClickListener {
 	private Button mSelectDateFontColorButton;
 
 	public static String colorToUse;
+
+	private final String SHOW_DATE = "showDate";
+	private final String SHOW_REFRESH = "showRefresh";
+	private final String DATE_FONT_COLOR = "dateFontColor";
+	private final String DATE_BG_COLOR = "dateBgColor";
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -54,6 +49,12 @@ public class CarOfDayConfigure extends Activity implements OnClickListener {
 		mDoneButton.setOnClickListener(this);
 		mSelectBGColorButton.setOnClickListener(this);
 		mSelectDateFontColorButton.setOnClickListener(this);
+
+		final SharedPreferences prefs = PreferenceManager
+				.getDefaultSharedPreferences(this);
+		mShowDateCheckbox.setChecked(prefs.getBoolean(SHOW_DATE, true));
+		mShowRefreshButtonCheckbox.setChecked(prefs.getBoolean(SHOW_REFRESH,
+				true));
 	}
 
 	@Override
@@ -100,21 +101,11 @@ public class CarOfDayConfigure extends Activity implements OnClickListener {
 					}
 				});
 
-		colorDialog.setButton(DialogInterface.BUTTON_NEGATIVE,
-				getString(android.R.string.cancel),
-				new DialogInterface.OnClickListener() {
-
-					@Override
-					public void onClick(DialogInterface dialog, int which) {
-						// Nothing to do here.
-					}
-				});
-
 		colorDialog.show();
 	}
 
 	private void selectBGColorClicked() {
-		openColorPicker("dateBGColor");
+		openColorPicker(DATE_BG_COLOR);
 	}
 
 	private void doneButtonClicked() {
@@ -122,70 +113,48 @@ public class CarOfDayConfigure extends Activity implements OnClickListener {
 	}
 
 	private void dateFontColorClicked() {
-		openColorPicker("dateFontColor");
+		openColorPicker(DATE_FONT_COLOR);
 	}
 
 	private void showAppWidget() {
 
-		mAppWidgetId = AppWidgetManager.INVALID_APPWIDGET_ID;
-		Intent intent = getIntent();
-		Bundle extras = intent.getExtras();
-		if (extras != null) {
-			mAppWidgetId = extras.getInt(EXTRA_APPWIDGET_ID,
-					INVALID_APPWIDGET_ID);
+		AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(this);
+		RemoteViews views = new RemoteViews(getPackageName(),
+				R.layout.widget_layout);
+		ComponentName widget = new ComponentName(this, MyWidgetProvider.class);
 
-			AppWidgetProviderInfo providerInfo = AppWidgetManager.getInstance(
-					getBaseContext()).getAppWidgetInfo(mAppWidgetId);
+		setResult(RESULT_OK);
 
-			AppWidgetManager appWidgetManager = AppWidgetManager
-					.getInstance(this);
-			RemoteViews views = new RemoteViews(getPackageName(),
-					R.layout.widget_layout);
-			ComponentName widget = new ComponentName(this,
-					MyWidgetProvider.class);
+		final SharedPreferences prefs = PreferenceManager
+				.getDefaultSharedPreferences(this);
 
-			setResult(RESULT_OK);
+		SharedPreferences.Editor editor = prefs.edit();
 
-			final SharedPreferences prefs = PreferenceManager
-					.getDefaultSharedPreferences(this);
+		editor.putBoolean(SHOW_DATE, mShowDateCheckbox.isChecked());
+		editor.commit();
 
-			SharedPreferences.Editor editor = prefs.edit();
+		editor.putBoolean(SHOW_REFRESH, mShowRefreshButtonCheckbox.isChecked());
+		editor.commit();
 
-			editor.putBoolean("showDate", mShowDateCheckbox.isChecked());
-			editor.commit();
+		views.setTextColor(R.id.date, prefs.getInt(DATE_FONT_COLOR, 0xFFF));
+		views.setInt(R.id.date, "setBackgroundColor",
+				prefs.getInt(DATE_BG_COLOR, 0x0));
 
-			editor.putBoolean("showRefresh",
-					mShowRefreshButtonCheckbox.isChecked());
-			editor.commit();
-
-			views.setTextColor(R.id.date,
-					prefs.getInt("dateFontColor", 0xAAAAAAAA));
-			SimpleDateFormat sdf = new SimpleDateFormat("MMMM dd, yyyy");
-			String currentDate = sdf.format(new Date());
-
-			views.setTextViewText(R.id.date, currentDate);
-			views.setInt(R.id.date, "setBackgroundColor",
-					prefs.getInt("dateBGColor", 0x0));
-
-			if (mShowRefreshButtonCheckbox.isChecked()) {
-				views.setViewVisibility(R.id.refreshButton, View.VISIBLE);
-			} else {
-				views.setViewVisibility(R.id.refreshButton, View.GONE);
-			}
-
-			if (mShowDateCheckbox.isChecked()) {
-				views.setViewVisibility(R.id.date, View.VISIBLE);
-			} else {
-				views.setViewVisibility(R.id.date, View.GONE);
-			}
-
-			appWidgetManager.updateAppWidget(widget, views);
-
-			finish();
+		if (mShowRefreshButtonCheckbox.isChecked()) {
+			views.setViewVisibility(R.id.refreshButton, View.VISIBLE);
+		} else {
+			views.setViewVisibility(R.id.refreshButton, View.GONE);
 		}
-		if (mAppWidgetId == INVALID_APPWIDGET_ID) {
-			finish();
+
+		if (mShowDateCheckbox.isChecked()) {
+			views.setViewVisibility(R.id.date, View.VISIBLE);
+		} else {
+			views.setViewVisibility(R.id.date, View.GONE);
 		}
+
+		appWidgetManager.updateAppWidget(widget, views);
+
+		finish();
 
 	}
 }
